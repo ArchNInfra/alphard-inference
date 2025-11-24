@@ -8,7 +8,7 @@ This version implements the **minimal ML loop **:
 - Serve predictions via FastAPI  
 - Package everything into a Docker image  
 
-It forms the foundation for deployment in later stages (Day 5: ECS/Fargate).
+It forms the foundation for deployment in later stages (ECS/Fargate).
 
 ---
 
