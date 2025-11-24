@@ -1,100 +1,141 @@
-# Alphard – Inference Service
+# Alphard – Minimal Inference Service
 
-**Alphard** is the inference star of the Constellation System — a solitary, high-pressure gateway just like the star Alphard (“the solitary one”) in Hydra.  
-It provides a resilient, containerized inference API capable of running behind AWS ECS Fargate.
+Alphard is the inference star of the Constellation System — a lightweight, reproducible inference API designed to run on AWS ECS Fargate later in the pipeline.
+
+This version implements the **minimal ML loop (Day 1–2)**:
+
+- Train a simple ML model  
+- Serve predictions via FastAPI  
+- Package everything into a Docker image  
+
+It forms the foundation for deployment in later stages (Day 5: ECS/Fargate).
 
 ---
 
 ## Overview
 
-Alphard exposes a minimal, production-ready inference API that serves model predictions and integrates cleanly with the Mira MLOps pipeline.
+This repository provides:
 
-The design emphasizes:
+- A reproducible ML training script (`ml/train.py`)
+- A FastAPI-based inference service (`service/app.py`)
+- A minimal Prometheus metrics endpoint
+- A Docker runtime environment
+- A clean, dependency-pinned Python environment
 
-- **Reproducibility** (immutable Docker images, Git SHA tags)
-- **Stability under load** (ECS + ALB health checks)
-- **Structured logging** (logfmt or JSON logs for CloudWatch)
-- **Separation of concerns** (model is loaded from S3 or artifact registry)
+This version intentionally keeps everything small and deterministic.
 
 ---
 
 ## Scope
 
-### Core Features
-- FastAPI-based REST inference endpoint  
-- Config-driven model loading  
-- Structured JSON logs (compatible with CloudWatch Insights)  
-- Health probe endpoints (`/live`, `/ready`)
+Alphard (v0.1 – minimal version) delivers:
 
-### Deployment Targets
-- **AWS ECS Fargate** (primary)
-- AWS ALB with rolling deployments
-- ECR container registry
-- GitHub Actions CI for:
-  - lint → build → push → deploy (optional)
+- Minimal ML training pipeline
+- FastAPI inference API
+- Basic metrics endpoint
+- Dockerized runtime environment
+- Ready for AWS ECS Fargate deployment in v0.2
 
 ---
 
-## Stack
+## Quick Start
 
-**Language & Framework**
-- Python
-- FastAPI
-- Uvicorn
+### 1. Train the model locally
 
-**AWS Services**
-- ECS Fargate (service runtime)
-- ALB (load balancing + health checks)
-- ECR (container images)
-- CloudWatch Logs (observability)
-- S3 (model artifact retrieval, optional)
+```
+python -m ml.train
+```
 
-**Tooling**
-- Docker (multi-stage build)
-- GitHub Actions (CI)
+Produces:
+
+```
+ml/models/model-latest.pkl
+```
+
+### 2. Run the API locally
+
+```
+uvicorn service.app:app --reload
+```
+
+### 3. Test
+
+#### Health Check
+
+```
+curl http://localhost:8000/health
+```
+
+#### Prediction
+
+```
+curl -X POST http://localhost:8000/predict \
+  -H "Content-Type: application/json" \
+  -d '{"features":[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0]}'
+```
+
+#### Metrics
+
+```
+curl http://localhost:8000/metrics
+```
+
+---
+
+## Docker
+
+### Build
+
+```
+docker build -t alphard-inference:local .
+```
+
+### Run
+
+```
+docker run -p 8000:8000 alphard-inference:local
+```
+
+---
+
+## Endpoints
+
+| Endpoint       | Description                        |
+|----------------|------------------------------------|
+| `/health`      | Service is alive and operational   |
+| `/predict`     | Perform inference using the model  |
+| `/metrics`     | Prometheus-compatible metrics      |
 
 ---
 
 ## Structure
 
-(To be completed after v0.2)
-
-Suggested layout:
-
+```
 alphard-inference/
-app/
-main.py
-inference.py
-models/
-configs/
-docker/
-infra/
-tests/
-scripts/
-docs/
-
-
----
-
-## Health Endpoints
-
-The service exposes:
-
-- `/live` – process is alive  
-- `/ready` – model loaded & API ready  
-- `/predict` – inference endpoint  
-
-These enable ALB to safely orchestrate rolling deployments without dropping traffic.
+├── ml/
+│   ├── train.py
+│   └── models/
+│       └── model-latest.pkl        (ignored by Git)
+├── service/
+│   └── app.py
+├── tests/
+│   └── __init__.py
+├── Dockerfile
+├── requirements.txt
+└── README.md
+```
 
 ---
 
 ## Status
 
-### 0.2 — Upcoming
-- Add FastAPI app structure  
-- Add Docker multi-stage build  
-- Add GitHub Actions CI pipeline  
-- Add ECS task/service Terraform module  
+### v0.2 — Upcoming
+- ECS Fargate deployment  
+- Structured logs  
+- Rolling deploy readiness endpoints  
+- GitHub Actions CI  
 
-### 0.1 — Repository initialized
-- Renamed to Alphard and linked to the Constellation system
+### v0.1 — Minimal Inference Loop (Current)
+- Training script implemented  
+- FastAPI service (`/health`, `/predict`, `/metrics`)  
+- Docker image build & run  
